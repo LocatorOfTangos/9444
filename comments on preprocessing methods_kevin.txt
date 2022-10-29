@@ -1,0 +1,12 @@
+Stemming:
+Stemming converts words to their word stem. For example, 'raining' is converted to 'rain'. It is useful for dealing with sparsity issues as well as standardizing vocabulary. 
+However, there is criticism on stemming as some words can be incorrectly processed. An example is that 'Ring' can be converted to 'R' which is obviously wrong.
+The library considered in our code is 'PorterStemmer' from 'nltk.stem'. 
+Based on positve/negative impact on our model accuracy, we decided to exclude/include the stemming process.
+
+
+Lemmatizing:
+Lemmatizing is considered as an advanced version of stemming, and ofter produces higher accuracy.
+It looks up each word in a dictionary and maps it to its proper base form.
+The risk of incorrectly converting a word is lower compared to stemming. 
+Although stemming can be faster to run, lemmatizing is prerred in our case for better performance.
