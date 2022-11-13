@@ -183,41 +183,12 @@ for param in bert.parameters():
 	param.requires_grad = False
 
 #defining new layers
-class BERT_architecture(nn.Module):
+import torch.nn as nn
+#freeze the pretrained layers
+for param in bert.parameters():
+	param.requires_grad = False
 
-  def __init__(self, bert):
-		
-    super(BERT_architecture, self).__init__()
-
-    self.bert = bert
-      
-    # dropout layer
-    self.dropout = nn.Dropout(0.25)
-      
-    # relu activation function
-    self.relu = nn.ReLU()
-
-    #softmax activation function
-    self.softmax = nn.LogSoftmax(dim=1)
-    
-    
-    self.fc1 = nn.Linear(768,2)
-
-	#define the forward pass
-  def forward(self, sent_id, mask):
-    pooled_output = self.bert(sent_id, attention_mask=mask)
-    
-    x = self.dropout(pooled_output['pooler_output'])
-    
-    x = self.fc1(x)
-    
-    x = self.relu(x)
-    
-    x = self.softmax(x)
-
-    return x
-
-class BERTGRUSentiment(nn.Module):
+class BERT_GRU(nn.Module):
     def __init__(self,
                  bert,
                  hidden_dim,
@@ -273,10 +244,6 @@ class BERTGRUSentiment(nn.Module):
         
         return output
       
-      
-# pass the pre-trained BERT to our define architecture
-
-# model = BERT_architecture(bert)
 
 HIDDEN_DIM = 256
 OUTPUT_DIM = 2
@@ -284,7 +251,7 @@ N_LAYERS = 2
 BIDIRECTIONAL = True
 DROPOUT = 0.25
 
-model = BERTGRUSentiment(bert,
+model = BERT_GRU(bert,
                          HIDDEN_DIM,
                          OUTPUT_DIM,
                          N_LAYERS,
@@ -298,7 +265,7 @@ print(torch.cuda.is_available())
 # push the model to GPU
 model = model.to(device)
 
-optimizer = AdamW(model.parameters(),lr = 0.001) # learning rate
+optimizer = AdamW(model.parameters(),lr = 0.0001) # learning rate
 
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -323,7 +290,7 @@ weights = weights.to(device)
 cross_entropy  = nn.NLLLoss(weight=weights) 
 
 # number of training epochs
-epochs = 50
+epochs = 20
 
 # function to train the model
 def train():
@@ -475,7 +442,30 @@ with torch.no_grad():
   preds = model(test_seq.to(device), test_mask.to(device))
   preds = preds.detach().cpu().numpy()
 
-from sklearn.metrics import classification_report
-pred = np.argmax(preds, axis = 1)
-print(classification_report(test_y, pred))
 
+# Plots
+
+from sklearn.metrics import confusion_matrix, classification_report
+
+pred_y = np.argmax(preds, axis = 1)
+print(classification_report(test_y, pred_y))
+
+
+import seaborn as sns
+
+save_path = "confusion_matrix_bert_gru.png"
+
+def show_confusion_matrix(confusion_matrix):
+    hmap = sns.heatmap(confusion_matrix, annot=True, fmt="d", cmap="Blues")
+    hmap.yaxis.set_ticklabels(hmap.yaxis.get_ticklabels(), rotation=0, ha='right')
+    hmap.xaxis.set_ticklabels(hmap.xaxis.get_ticklabels(), rotation=30, ha='right')
+    plt.ylabel('True sentiment')
+    plt.xlabel('Predicted sentiment')
+    plt.savefig('confusion_matrix_bert.png')
+
+
+
+cm = confusion_matrix(test_y, pred_y)
+class_names = ["NEGATIVE", "POSITIVE"]
+df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
+show_confusion_matrix(df_cm)
